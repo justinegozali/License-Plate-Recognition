@@ -1,9 +1,13 @@
 import cv2
 import requests
+import threading
+import time
 from datetime import datetime
 from detection import *
 
 GO_BACKEND_URL = 'http://localhost:3100/notification/fetch-data'  # Ganti sesuai backend Go Anda
+
+last_license_plate = ""
 
 def process_frame(image):
     try:
@@ -21,9 +25,12 @@ def process_frame(image):
 
                 # Deteksi karakter
                 detected_character = detect_characters(license_plate_crop_img)
-                print(detected_character)
-                if detected_character != None:    
-                    send(vehicle_crop_img, detected_character)                
+                global last_license_plate
+                if detected_character != last_license_plate:
+                    print(last_license_plate)
+                    last_license_plate = detected_character
+                    threading.Thread(target=timer).start()
+                    # send(vehicle_crop_img, detected_character)
 
     except Exception as e:
         print(f"⚠️ Error: {e}")
@@ -48,6 +55,11 @@ def send(image, detected_character):
 
     except Exception as e:
         print(f"⚠️ Error: {e}")
+
+def timer():
+    time.sleep(10)
+    global last_license_plate
+    last_license_plate = ""
 
 def main():
     cap = cv2.VideoCapture(0)  # Webcam laptop atau USB
@@ -75,7 +87,7 @@ def main():
         process_frame(frame)
 
         # Delay untuk hindari spam kirim
-        # cv2.waitKey(1000)  # tunggu 5 detik sebelum lanjut
+        cv2.waitKey(3000)  # tunggu 5 detik sebelum lanjut
 
         # Keluar dengan menekan 'q'
         if cv2.waitKey(1) == ord('q'):
@@ -86,7 +98,7 @@ def main():
 
 # for testing
 def main_test():
-    image = cv2.imread('./image/imagetest6.jpg')
+    image = cv2.imread('./image/imagetest10.jpg')
     # cv2.imshow("image", image)
 
     process_frame(image)
