@@ -55,6 +55,10 @@ def detect_vehicles(image):
         if int(vehicle[5]) in vehicle_type:
             detected_vehicles.append(vehicle)
 
+    # return if there is no vehicle
+    if len(detected_vehicles) == 0:
+        return None
+    
     # find biggest vehicle on image
     detected_vehicle = max(detected_vehicles, key=lambda x: (x[0] - x[2])*(x[1] - x[3]))
 
@@ -74,8 +78,20 @@ def detect_license_plates(image, class_id):
         license_plates = license_plate_detector(image)[0]
         detected_license_plates = license_plates.boxes.data.tolist()
 
+    # return if there is no licence plate
+    if len(detected_license_plates) == 0:
+        return None
+
+    # confidence below 0.65 get nuked 
+    detected_license_plates_confidence = []
+    for data in detected_license_plates:
+        if data[4] >= 0.65:
+            detected_license_plates_confidence.append(data)
+    if len(detected_license_plates_confidence) == 0:
+        return None 
+
     # find biggest license plate on image
-    detected_license_plate = max(detected_license_plates, key=lambda x: (x[0] - x[2])*(x[1] - x[3]))
+    detected_license_plate = max(detected_license_plates_confidence, key=lambda x: (x[0] - x[2])*(x[1] - x[3]))
 
     return detected_license_plate
 
@@ -83,15 +99,20 @@ def detect_characters(image):
     license_plate_characters = license_plate_character_detector(image)[0]
     data_array = license_plate_characters.boxes.data.tolist()
 
+    # return if there is no character
+    if len(data_array) == 0:
+        return None
+
     # sort the data from left to right
     data_array_sorted = sorted(data_array, key=lambda x: x[0])
 
-    # confidence dibawah 0.4 di bom 
+    # confidence below 0.4 get nuked 
     data_array_confidence = []
     for data in data_array_sorted:
         if data[4] >= 0.4:
             data_array_confidence.append(data)
-
+    if len(data_array_confidence) < 2:
+        return None
 
     # take class data from sorted array
     class_array = [row[5] for row in data_array_confidence]
