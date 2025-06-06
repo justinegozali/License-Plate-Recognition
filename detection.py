@@ -2,9 +2,9 @@ from ultralytics import YOLO
 
 # load models
 yolov8_model = YOLO('./models/yolo11n.pt')
-license_plate_detector = YOLO('./models/license_plate_detector.pt')
+license_plate_detector = YOLO('./models/license_plate_detector_v2.pt')
 license_plate_motorbike_detector = YOLO('./models/license_plate_motorbike_detector.pt')
-license_plate_character_detector = YOLO('./models/license_plate_character_detector.pt')
+license_plate_character_detector = YOLO('./models/license_plate_character_detector_v2.pt')
 
 # vehicle type {cars, motorbike, bus, truck}
 vehicle_type = [2, 3, 5, 7]
@@ -109,7 +109,7 @@ def detect_characters(image):
     # confidence below 0.4 get nuked 
     data_array_confidence = []
     for data in data_array_sorted:
-        if data[4] >= 0.4:
+        if data[4] >= 0.45:
             data_array_confidence.append(data)
     if len(data_array_confidence) < 2:
         return None

@@ -18,18 +18,21 @@ def process_frame(image):
             vehicle_crop_img = image[int(y1):int(y2), int(x1):int(x2)]
 
             # Deteksi plat nomor
-            detected_license_plate = detect_license_plates(vehicle_crop_img, class_id)
+            detected_license_plate = detect_license_plates(vehicle_crop_img, score)
             if detected_license_plate != None:
+                print(detected_license_plate)
                 x1, y1, x2, y2, score, class_id = detected_license_plate
                 license_plate_crop_img = vehicle_crop_img[int(y1):int(y2), int(x1):int(x2)]
+                cv2.imshow("img", license_plate_crop_img)
 
                 # Deteksi karakter
                 detected_character = detect_characters(license_plate_crop_img)
-                global last_license_plate
-                if detected_character != last_license_plate:
-                    print(last_license_plate)
-                    last_license_plate = detected_character
-                    threading.Thread(target=timer).start()
+                print(detected_character)
+                # global last_license_plate
+                # if detected_character != last_license_plate:
+                #     last_license_plate = detected_character
+                #     print(last_license_plate)
+                #     threading.Thread(target=timer).start()
                     # send(vehicle_crop_img, detected_character)
 
     except Exception as e:
@@ -62,11 +65,11 @@ def timer():
     last_license_plate = ""
 
 def main():
-    cap = cv2.VideoCapture(0)  # Webcam laptop atau USB
+    cap = cv2.VideoCapture(1)  # Webcam laptop atau USB
 
     # Set resolusi lebih kecil jika perlu (opsional)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    # cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    # cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
     if not cap.isOpened():
         print("❌ Tidak bisa membuka kamera.")
@@ -87,7 +90,7 @@ def main():
         process_frame(frame)
 
         # Delay untuk hindari spam kirim
-        cv2.waitKey(3000)  # tunggu 5 detik sebelum lanjut
+        cv2.waitKey(2000)  # tunggu 5 detik sebelum lanjut
 
         # Keluar dengan menekan 'q'
         if cv2.waitKey(1) == ord('q'):
@@ -98,7 +101,7 @@ def main():
 
 # for testing
 def main_test():
-    image = cv2.imread('./image/imagetest10.jpg')
+    image = cv2.imread('./image/val024_1.jpg')
     # cv2.imshow("image", image)
 
     process_frame(image)
