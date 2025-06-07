@@ -4,7 +4,7 @@ from ultralytics import YOLO
 yolov8_model = YOLO('./models/yolo11n.pt')
 license_plate_detector = YOLO('./models/license_plate_detector_v2.pt')
 license_plate_motorbike_detector = YOLO('./models/license_plate_motorbike_detector.pt')
-license_plate_character_detector = YOLO('./models/license_plate_character_detector_v2.pt')
+license_plate_character_detector = YOLO('./models/license_plate_character_detector_v3.pt')
 
 # vehicle type {cars, motorbike, bus, truck}
 vehicle_type = [2, 3, 5, 7]
@@ -81,17 +81,17 @@ def detect_license_plates(image, class_id):
     # return if there is no licence plate
     if len(detected_license_plates) == 0:
         return None
-
-    # confidence below 0.65 get nuked 
+    
+    # confidence below 0.5 get nuked 
     detected_license_plates_confidence = []
     for data in detected_license_plates:
-        if data[4] >= 0.65:
+        if data[4] >= 0.5:
             detected_license_plates_confidence.append(data)
     if len(detected_license_plates_confidence) == 0:
         return None 
 
-    # find biggest license plate on image
-    detected_license_plate = max(detected_license_plates_confidence, key=lambda x: (x[0] - x[2])*(x[1] - x[3]))
+    # get highest confidence detected license plate
+    detected_license_plate = max(detected_license_plates_confidence, key=lambda x: x[4])
 
     return detected_license_plate
 
@@ -109,13 +109,16 @@ def detect_characters(image):
     # confidence below 0.4 get nuked 
     data_array_confidence = []
     for data in data_array_sorted:
-        if data[4] >= 0.45:
+        if data[4] >= 0.4:
             data_array_confidence.append(data)
-    if len(data_array_confidence) < 2:
+
+    # removed double detection
+    data_array_check = removed_double_detection(data_array_confidence)
+    if len(data_array_check) < 2:
         return None
 
     # take class data from sorted array
-    class_array = [row[5] for row in data_array_confidence]
+    class_array = [row[5] for row in data_array_check]
 
     # convert class data to character
     character_array = [class_dictionary.get(key, None) for key in class_array]
@@ -123,3 +126,18 @@ def detect_characters(image):
     # convert character array into string 
     character_string = ''.join(character_array)
     return character_string
+
+def removed_double_detection(data_array_confidence):
+    x1_temp = 0
+    for i, data in enumerate(data_array_confidence):
+        if data[0] < 2:
+            data_array_confidence.pop(i)
+            return removed_double_detection(data_array_confidence)
+        if data[0] - x1_temp < 1:
+            if data[4] > data_array_confidence[i-1][4]:
+                data_array_confidence.pop(i)
+            else:
+                data_array_confidence.pop(i-1)
+            return removed_double_detection(data_array_confidence)
+        x1_temp = data[0]
+    return data_array_confidence

@@ -5,7 +5,7 @@ import time
 from datetime import datetime
 from detection import *
 
-GO_BACKEND_URL = 'http://localhost:3100/notification/fetch-data'  # Ganti sesuai backend Go Anda
+GO_BACKEND_URL = 'https://go-auth-service.vercel.app/notification/fetch-data' # Ganti sesuai backend Go Anda
 
 last_license_plate = ""
 
@@ -16,29 +16,29 @@ def process_frame(image):
         if detected_vehicle != None:
             x1, y1, x2, y2, score, class_id = detected_vehicle
             vehicle_crop_img = image[int(y1):int(y2), int(x1):int(x2)]
+            # cv2.imshow("vehicle_crop_img", vehicle_crop_img)
 
             # Deteksi plat nomor
             detected_license_plate = detect_license_plates(vehicle_crop_img, score)
             if detected_license_plate != None:
-                print(detected_license_plate)
                 x1, y1, x2, y2, score, class_id = detected_license_plate
                 license_plate_crop_img = vehicle_crop_img[int(y1):int(y2), int(x1):int(x2)]
-                cv2.imshow("img", license_plate_crop_img)
+                # cv2.imshow("license_plate_crop_img", license_plate_crop_img)
 
                 # Deteksi karakter
                 detected_character = detect_characters(license_plate_crop_img)
-                print(detected_character)
-                # global last_license_plate
-                # if detected_character != last_license_plate:
-                #     last_license_plate = detected_character
-                #     print(last_license_plate)
-                #     threading.Thread(target=timer).start()
+                # print(detected_character)
+                global last_license_plate
+                if detected_character != last_license_plate:
+                    last_license_plate = detected_character
+                    print(last_license_plate)
+                    threading.Thread(target=timer).start()
                     # send(vehicle_crop_img, detected_character)
 
     except Exception as e:
         print(f"⚠️ Error: {e}")
 
-def send(image, detected_character):
+def send(detected_character):
     try:
         # Waktu pemindaian  
         scanned_datetime = datetime.now().isoformat()
@@ -90,7 +90,7 @@ def main():
         process_frame(frame)
 
         # Delay untuk hindari spam kirim
-        cv2.waitKey(2000)  # tunggu 5 detik sebelum lanjut
+        cv2.waitKey(3000)  # tunggu 3 detik sebelum lanjut
 
         # Keluar dengan menekan 'q'
         if cv2.waitKey(1) == ord('q'):
@@ -101,7 +101,7 @@ def main():
 
 # for testing
 def main_test():
-    image = cv2.imread('./image/val024_1.jpg')
+    image = cv2.imread('./image/imagetest10.jpg')
     # cv2.imshow("image", image)
 
     process_frame(image)
