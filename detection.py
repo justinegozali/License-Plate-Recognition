@@ -1,3 +1,4 @@
+import numpy as np
 from ultralytics import YOLO
 
 # load models
@@ -48,96 +49,102 @@ class_dictionary = {0: '0',
                     35: 'Z'}
 
 def detect_vehicles(image):
-    # detect vehicles
-    detected_vehicles = []
+    # detect object
     vehicles = yolov8_model(image)[0]
-    for vehicle in vehicles.boxes.data.tolist():
-        if int(vehicle[5]) in vehicle_type:
-            detected_vehicles.append(vehicle)
+    detected_vehicles = np.array(vehicles.boxes.data.tolist())
+    if detected_vehicles.shape[0] == 0:
+        return np.array([])    
 
-    # return if there is no vehicle
-    if len(detected_vehicles) == 0:
-        return None
-    
+    # filter only vehicle
+    class_filter = np.isin(detected_vehicles[:, 5], vehicle_type)
+    detected_vehicles = detected_vehicles[class_filter]
+    if detected_vehicles.shape[0] == 0:
+        return np.array([])
+
     # find biggest vehicle on image
-    detected_vehicle = max(detected_vehicles, key=lambda x: (x[0] - x[2])*(x[1] - x[3]))
-
+    areas = (detected_vehicles[:, 2] - detected_vehicles[:, 0])*(detected_vehicles[:, 3] - detected_vehicles[:, 1])
+    largest_filter = np.argmax(areas)
+    detected_vehicle = detected_vehicles[largest_filter]
+    
     return detected_vehicle
 
 def detect_license_plates(image, class_id):
     # detect license plate
-    detected_license_plates = []
+    detected_license_plates = np.array([])
 
     # motorbike 
     if class_id == 3:
         license_plates = license_plate_motorbike_detector(image)[0]
-        detected_license_plates = license_plates.boxes.data.tolist()
+        detected_license_plates = np.array(license_plates.boxes.data.tolist())
     
     # cars, truck, bus
     else:
         license_plates = license_plate_detector(image)[0]
-        detected_license_plates = license_plates.boxes.data.tolist()
+        detected_license_plates = np.array(license_plates.boxes.data.tolist())
 
-    # return if there is no licence plate
-    if len(detected_license_plates) == 0:
-        return None
+    if detected_license_plates.shape[0] == 0:
+        return np.array([])
     
     # confidence below 0.5 get nuked 
-    detected_license_plates_confidence = []
-    for data in detected_license_plates:
-        if data[4] >= 0.5:
-            detected_license_plates_confidence.append(data)
-    if len(detected_license_plates_confidence) == 0:
-        return None 
+    confidence_filter = detected_license_plates[:, 4] > 0.5
+    detected_license_plates = detected_license_plates[confidence_filter]
+    if detected_license_plates.shape[0] == 0:
+        return np.array([])
 
-    # get highest confidence detected license plate
-    detected_license_plate = max(detected_license_plates_confidence, key=lambda x: x[4])
+    # find highest confidence detected license plate
+    largest_confidence_filter = np.argmax(detected_license_plates[:, 4])
+    detected_license_plate = detected_license_plates[largest_confidence_filter]
 
     return detected_license_plate
 
 def detect_characters(image):
+    # detect characters
     license_plate_characters = license_plate_character_detector(image)[0]
-    data_array = license_plate_characters.boxes.data.tolist()
-
-    # return if there is no character
-    if len(data_array) == 0:
-        return None
-
+    detected_characters = np.array(license_plate_characters.boxes.data.tolist())
+    if detected_characters.shape[0] == 0:
+        return np.array([])
+    
     # sort the data from left to right
-    data_array_sorted = sorted(data_array, key=lambda x: x[0])
+    detected_characters = detected_characters[detected_characters[:, 0].argsort()]
 
-    # confidence below 0.4 get nuked 
-    data_array_confidence = []
-    for data in data_array_sorted:
-        if data[4] >= 0.4:
-            data_array_confidence.append(data)
+    # confidence below 0.3 get nuked 
+    confidence_filter = detected_characters[:, 4] > 0.3
+    detected_characters = detected_characters[confidence_filter]
+    if detected_characters.shape[0] == 0:
+        return np.array([])
 
-    # removed double detection
-    data_array_check = removed_double_detection(data_array_confidence)
-    if len(data_array_check) < 2:
-        return None
+    # # removed double detection
+    detected_characters = removed_double_detection(detected_characters)
+    if detected_characters.shape[0] < 2:
+        return np.array([])
 
     # take class data from sorted array
-    class_array = [row[5] for row in data_array_check]
+    class_array = detected_characters[:, 5]
 
-    # convert class data to character
-    character_array = [class_dictionary.get(key, None) for key in class_array]
+    # # convert class data to character
+    character_array = [class_dictionary.get(key, None) for key in class_array.tolist()]
 
-    # convert character array into string 
+    # # convert character array into string 
     character_string = ''.join(character_array)
     return character_string
 
-def removed_double_detection(data_array_confidence):
+def removed_double_detection(detected_characters):
+    filter_arr = []
     x1_temp = 0
-    for i, data in enumerate(data_array_confidence):
+
+    for i, data in enumerate(detected_characters):
         if data[0] < 2:
-            data_array_confidence.pop(i)
-            return removed_double_detection(data_array_confidence)
-        if data[0] - x1_temp < 1:
-            if data[4] > data_array_confidence[i-1][4]:
-                data_array_confidence.pop(i)
+            filter_arr.append(False)
+        elif data[0] - x1_temp < 1:
+            if data[4] > detected_characters[i-1][4]:
+                filter_arr.pop()
+                filter_arr.append(False)
+                filter_arr.append(True)
             else:
-                data_array_confidence.pop(i-1)
-            return removed_double_detection(data_array_confidence)
-        x1_temp = data[0]
-    return data_array_confidence
+                filter_arr.append(False)
+        else:
+            filter_arr.append(True)
+            x1_temp = data[0]
+
+    detected_characters = detected_characters[filter_arr]
+    return detected_characters
