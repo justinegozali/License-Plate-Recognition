@@ -5,6 +5,7 @@ from ultralytics import YOLO
 yolov8_model = YOLO('./models/yolo11n.pt')
 license_plate_detector = YOLO('./models/license_plate_detector_v2.pt')
 license_plate_motorbike_detector = YOLO('./models/license_plate_motorbike_detector.pt')
+# license_plate_character_detector = YOLO('./models/license_plate_character_detector_v3.pt')
 license_plate_character_detector = YOLO('./models/license_plate_character_detector_v3.pt')
 
 # vehicle type {cars, motorbike, bus, truck}
