@@ -1,7 +1,6 @@
 import cv2
 import requests
 import threading
-import time
 from datetime import datetime
 from detection import *
 
@@ -32,8 +31,8 @@ def process_frame(image):
                 if detected_character != last_license_plate:
                     last_license_plate = detected_character
                     print(last_license_plate)
+                    send(detected_character)
                     threading.Timer(10.0, timer).start()
-                    # send(vehicle_crop_img, detected_character)
 
     except Exception as e:
         print(f"⚠️ Error: {e}")
