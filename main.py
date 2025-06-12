@@ -32,7 +32,7 @@ def process_frame(image):
                     last_license_plate = detected_character
                     print(last_license_plate)
                     send(detected_character)
-                    threading.Timer(10.0, timer).start()
+                    threading.Timer(15.0, timer).start()
 
     except Exception as e:
         print(f"⚠️ Error: {e}")
