@@ -1,7 +1,6 @@
 import cv2
 import requests
 import threading
-import time
 from datetime import datetime
 from detection import *
 
@@ -27,13 +26,13 @@ def process_frame(image):
 
                 # Deteksi karakter
                 detected_character = detect_characters(license_plate_crop_img)
-                print(detected_character)
-                # global last_license_plate
-                # if detected_character != last_license_plate:
-                #     last_license_plate = detected_character
-                #     print(last_license_plate)
-                #     threading.Thread(target=timer).start()
-                #     send(vehicle_crop_img, detected_character)
+                # print(detected_character)
+                global last_license_plate
+                if detected_character != last_license_plate:
+                    last_license_plate = detected_character
+                    print(last_license_plate)
+                    send(detected_character)
+                    threading.Timer(15.0, timer).start()
 
     except Exception as e:
         print(f"⚠️ Error: {e}")
@@ -60,7 +59,6 @@ def send(detected_character):
         print(f"⚠️ Error: {e}")
 
 def timer():
-    time.sleep(10)
     global last_license_plate
     last_license_plate = ""
 
@@ -90,7 +88,7 @@ def main():
         process_frame(frame)
 
         # Delay untuk hindari spam kirim
-        cv2.waitKey(6000)  # tunggu 3 detik sebelum lanjut
+        cv2.waitKey(3000)  # tunggu 3 detik sebelum lanjut
 
         # Keluar dengan menekan 'q'
         if cv2.waitKey(1) == ord('q'):
@@ -107,4 +105,4 @@ def main_test():
     process_frame(image)
 
 if __name__ == "__main__":
-    main_test()
+    main()
